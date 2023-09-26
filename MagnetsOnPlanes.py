@@ -2,12 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import axes3d
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib import colors
 
 #https://matplotlib.org/stable/api/asgen/matplotlib.pyplot.quiver.html#matplotlib.pyplot.quiver
 
-
-ax = plt.figure().add_subplot(projection='3d')
-ax.set_title('Magnetic Field Between Sets Of Magnets On Two Plates')
+fig = plt.figure(dpi=200)
+ax = plt.figure(num=1, figsize=(12, 8)).add_subplot(projection='3d')
+#ax.set_title('Magnetic Field Between Sets Of Magnets On Two Plates')
 
 # Making the grid
 x, y, z = np.meshgrid(np.arange(-0.4, 0.41, 0.03),
@@ -47,8 +48,7 @@ def plotCubeAt2(positions,sizes=None,colors=None, **kwargs):
     g = []
     for p,s,c in zip(positions,sizes,colors):
         g.append( cuboid_data2(p, size=s) )
-    return Poly3DCollection(np.concatenate(g),  
-                            facecolors=np.repeat(colors,6), **kwargs)
+    return Poly3DCollection(np.concatenate(g), facecolors=np.repeat(colors,6), **kwargs)
     
 
 positions = []
@@ -56,7 +56,7 @@ sizes = []
 colors = []
 
 start=0
-length=13
+length=13 # is equal to the amount of magnets in a line on the plate
 ssx=0.007
 ssy=0.015
 ssz=0.015
@@ -95,18 +95,20 @@ for i in range (start,start+length):
 dipole_positions = list(dipole_positions)
 positions = list(positions) 
 sizes = list(sizes)
-pc = plotCubeAt2(positions,sizes,colors=colors, edgecolor="k")
+pc = plotCubeAt2(positions,sizes,colors=colors, edgecolor="k", linewidth=0.1)
 ax.add_collection3d(pc)    
 
 # Magnetic field formula
 # b_field = 1/(4*Pi)*(3*r*(r*m)/r^5-m/r^3)
-# factors and variables
+
+# useful factors and variables
 mu = 1.25663706212E-6 # H/m
 factor = mu/(4*np.pi)
 tempfieldx = 0.
 tempfieldy = 0.
 tempfieldz = 0.
 
+#calculating the B-field at point (x,y,z)
 for i in range (start,start+length*length*2):
     xx = dipole_positions[i][0]
     yy = dipole_positions[i][1]
@@ -128,7 +130,7 @@ v = tempfieldy*multiplyfactor
 w = tempfieldz*multiplyfactor
 laenge=np.sqrt(u*u+v*v+w*w) #length of the printed b-field (arrow)
 
-maxlength=0.05 #maximum length of the arrow in the 3d plot
+maxlength=0.03 #maximum length of the arrow in the 3d plot
 uu = maxlength*u/laenge
 vv = maxlength*v/laenge
 ww = maxlength*w/laenge
@@ -136,8 +138,18 @@ ww = maxlength*w/laenge
 u=np.where(laenge<maxlength,u,uu)
 v=np.where(laenge<maxlength,v,vv)
 w=np.where(laenge<maxlength,w,ww)
+laenge=np.sqrt(u*u+v*v+w*w)
 
-ax.quiver(x, y, z, u, v, w, linewidths=0.5)#, length=0.1, normalize=True)
+# Color by azimuthal angle
+c = laenge #np.arctan2(v, u)
+# Flatten and normalize
+c = (c.ravel() - c.min()) / c.ptp()
+# Repeat for each body line and two head lines
+c = np.concatenate((c, np.repeat(c, 2)))
+# Colormap
+c = plt.cm.hsv(c)
+
+ax.quiver(x, y, z, u, v, w, linewidths=0.2, color=c)#, length=0.1, normalize=True)
 
 #set the limits of the shown axis in the 3d plot
 ax.set_xlim([-0.4,0.41])
@@ -145,9 +157,24 @@ ax.set_ylim([-0.4,0.41])
 ax.set_zlim([-0.4,0.41])
 
 #labels of the axis
-xLabel = ax.set_xlabel('x [m]', linespacing=3.1)
-yLabel = ax.set_ylabel('y [m]', linespacing=3.1)
-zLabel = ax.set_zlabel('z [m]', linespacing=3.1)
+xLabel = ax.set_xlabel('x [m]', fontsize=8, linespacing=3.1)
+yLabel = ax.set_ylabel('y [m]', fontsize=8, linespacing=3.1)
+zLabel = ax.set_zlabel('z [m]', fontsize=8, linespacing=3.1)
 
+ax.xaxis.set_tick_params(labelsize=8)
+ax.yaxis.set_tick_params(labelsize=8)
+ax.zaxis.set_tick_params(labelsize=8)
+
+#plt.title('Magnetic Field Between Sets Of Magnets On Two Plates')
+
+#fig.suptitle("Figure title", fontsize=16)
+# Figure subtitle
+#fig.text(0.5, 0.9, "Figure subtitle", horizontalalignment="center")
+# Figure footer title
+fig.text(0.5, 0.015, "Magnetic Field Between Sets Of Magnets On Two Plates",fontsize=8, horizontalalignment="center")
+
+# If you wanna save your image file in a specific directory
+#filename = "/Users/Holtmanns/Desktop/Plot.png"
+#plt.savefig(filename, dpi=1000)
 
 plt.show()
